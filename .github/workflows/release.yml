@@ -1,48 +1,24 @@
-name: Release
+name: Release (Manual)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build release for (e.g. v0.2.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  create-release:
-    name: Create Release
+  build-and-release:
+    name: Build & Release
     runs-on: ubuntu-latest
-    outputs:
-      release_id: ${{ steps.create.outputs.id }}
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Get version from tag
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        id: create
-        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: AurManager v${{ steps.version.outputs.version }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-
-  build-and-upload:
-    name: Build & Upload (${{ matrix.target }})
-    needs: create-release
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            arch: amd64
-    steps:
-      - uses: actions/checkout@v4
+          ref: ${{ inputs.tag }}
 
       - name: Install system dependencies
         run: |
@@ -66,7 +42,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-unknown-linux-gnu
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -81,19 +57,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --target ${{ matrix.target }}
+          args: --target x86_64-unknown-linux-gnu
 
       - name: Build Arch package
         run: ./build-arch.sh
 
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          find src-tauri/target -name "*.deb" -exec cp {} release-assets/ \;
+          find src-tauri/target -name "*.rpm" -exec cp {} release-assets/ \;
+          find src-tauri/target -name "*.pkg.tar.zst" -exec cp {} release-assets/ \;
+          echo "Collected assets:"
+          ls -lh release-assets/
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
-            src-tauri/target/release/bundle/*.pkg.tar.zst
-            src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
-            src-tauri/target/${{ matrix.target }}/release/bundle/rpm/*.rpm
-            src-tauri/target/${{ matrix.target }}/release/bundle/*.pkg.tar.zst
+          tag_name: ${{ inputs.tag }}
+          name: AurManager ${{ inputs.tag }}
+          draft: false
+          prerelease: false
+          files: release-assets/*
