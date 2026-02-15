@@ -11,9 +11,19 @@ ARCH="x86_64"
 PKGFILE="${PKGNAME}-${PKGVER}-${PKGREL}-${ARCH}.pkg.tar.zst"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BINARY="$SCRIPT_DIR/src-tauri/target/release/$PKGNAME"
 
-if [ ! -f "$BINARY" ]; then
+# Find the binary - check both direct and target-triple paths
+BINARY=""
+for candidate in \
+    "$SCRIPT_DIR/src-tauri/target/release/$PKGNAME" \
+    "$SCRIPT_DIR/src-tauri/target/x86_64-unknown-linux-gnu/release/$PKGNAME"; do
+    if [ -f "$candidate" ]; then
+        BINARY="$candidate"
+        break
+    fi
+done
+
+if [ -z "$BINARY" ]; then
     echo "Error: Binary not found at $BINARY"
     echo "Run 'npx tauri build' first."
     exit 1
