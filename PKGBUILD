@@ -28,18 +28,15 @@ optdepends=(
     'paru: AUR helper support (Rust-based)'
     'polkit: passwordless privilege escalation'
 )
-source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('SKIP')
-
-prepare() {
-    cd "$srcdir/$pkgname-$pkgver"
-    npm install
-}
+# For local builds, no source needed
+source=()
+sha256sums=()
 
 build() {
-    cd "$srcdir/$pkgname-$pkgver"
+    cd "$startdir"
 
     # Build frontend
+    npm install
     npm run build
 
     # Build Rust backend
@@ -48,7 +45,7 @@ build() {
 }
 
 package() {
-    cd "$srcdir/$pkgname-$pkgver"
+    cd "$startdir"
 
     # Install binary
     install -Dm755 "src-tauri/target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
@@ -64,4 +61,7 @@ package() {
 
     # Install polkit policy
     install -Dm644 "src-tauri/com.aurmanager.policy" "$pkgdir/usr/share/polkit-1/actions/com.aurmanager.policy"
+
+    # Post-install: update mime and desktop databases
+    echo ":: Run 'update-mime-database /usr/share/mime' and 'update-desktop-database' after install"
 }
