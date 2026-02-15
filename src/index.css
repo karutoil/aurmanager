@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    @apply bg-surface-950 text-gray-100;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-500;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg 
+           font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg 
+           font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 text-gray-300 hover:bg-surface-800 hover:text-white rounded-lg 
+           font-medium transition-colors duration-150;
+  }
+
+  .badge-official {
+    @apply px-2 py-0.5 text-xs font-medium rounded-full bg-blue-900/50 text-blue-300 border border-blue-800;
+  }
+
+  .badge-aur {
+    @apply px-2 py-0.5 text-xs font-medium rounded-full bg-purple-900/50 text-purple-300 border border-purple-800;
+  }
+
+  .card {
+    @apply bg-surface-900 border border-surface-700 rounded-xl p-4;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium 
+           text-gray-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer;
+  }
+
+  .sidebar-item.active {
+    @apply text-white bg-primary-600/20 text-primary-400;
+  }
+}

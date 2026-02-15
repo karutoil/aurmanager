@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=AurManager
+Comment=A fast, modern AUR-focused package manager for Arch Linux
+Exec=aurmanager %f
+Icon=aurmanager
+Terminal=false
+Type=Application
+Categories=System;PackageManager;
+Keywords=package;manager;pacman;aur;yay;paru;arch;
+MimeType=application/x-alpm-package;application/x-xz;application/gzip;
+StartupNotify=true
+StartupWMClass=AurManager
