@@ -1,0 +1,110 @@
+name: Auto Version & Release
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
+
+permissions:
+  contents: write
+
+jobs:
+  version-and-tag:
+    name: Auto Version
+    runs-on: ubuntu-latest
+    # Don't run on version bump commits to avoid infinite loops
+    if: "!contains(github.event.head_commit.message, 'chore: bump version')"
+    outputs:
+      new_tag: ${{ steps.bump.outputs.new_tag }}
+      changelog: ${{ steps.bump.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # Get the latest tag, default to v0.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+
+          # Parse current version
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Analyze commit messages since last tag for conventional commits
+          COMMITS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s")
+
+          BUMP="patch"
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qiE "^(feat|feature)(\(.+\))?!:|BREAKING CHANGE"; then
+              BUMP="major"
+              break
+            elif echo "$msg" | grep -qiE "^(feat|feature)(\(.+\))?:"; then
+              BUMP="minor"
+            fi
+          done <<< "$COMMITS"
+
+          # Apply bump
+          case $BUMP in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          NEW_TAG="v${NEW_VERSION}"
+          echo "Bump: $BUMP -> $NEW_VERSION"
+
+          # Generate changelog
+          CHANGELOG=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)" 2>/dev/null || git log --pretty=format:"- %s (%h)")
+
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "bump=$BUMP" >> $GITHUB_OUTPUT
+
+          # Save changelog to file for multiline output
+          echo "$CHANGELOG" > /tmp/changelog.txt
+          {
+            echo "changelog<<EOF"
+            cat /tmp/changelog.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Update version in project files
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+
+          # Update package.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
+
+          # Update Cargo.toml
+          sed -i "0,/^version = \".*\"/s//version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+
+          # Update tauri.conf.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
+
+          # Update PKGBUILD
+          sed -i "s/^pkgver=.*/pkgver=$NEW_VERSION/" PKGBUILD
+
+          # Update build-arch.sh
+          sed -i "s/^PKGVER=.*/PKGVER=\"$NEW_VERSION\"/" build-arch.sh
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git push
+
+      - name: Create and push tag
+        run: |
+          git tag "${{ steps.bump.outputs.new_tag }}" -m "Release ${{ steps.bump.outputs.new_tag }}"
+          git push origin "${{ steps.bump.outputs.new_tag }}"
