@@ -5,7 +5,7 @@ set -euo pipefail
 # Works without makepkg (for CI/cross-building on non-Arch systems)
 
 PKGNAME="aurmanager"
-PKGVER="0.1.0"
+PKGVER="0.1.1"
 PKGREL="1"
 ARCH="x86_64"
 PKGFILE="${PKGNAME}-${PKGVER}-${PKGREL}-${ARCH}.pkg.tar.zst"

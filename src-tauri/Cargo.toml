@@ -1,6 +1,6 @@
 [package]
 name = "aurmanager"
-version = "0.1.0"
+version = "0.1.1"
 description = "A fast, modern AUR-focused package manager for Arch Linux"
 authors = ["AurManager"]
 edition = "2021"

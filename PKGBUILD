@@ -1,6 +1,6 @@
 # Maintainer: AurManager Team
 pkgname=aurmanager
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="A fast, modern AUR-focused package manager for Arch Linux"
 arch=('x86_64')
